@@ -18,6 +18,7 @@
 #ifndef LOGISTIC_H
 #define LOGISTIC_H
 
+#include <math.h>
 #include <QObject>
 #include <QVector>
 
@@ -47,15 +48,16 @@ public:
     bool showSecondOrbit;
 
     Logistic(QObject *parent = nullptr);
+
     void computeParameterInterval();
-    void setParameter(double r);
+    void centerParameter();
+    int getParameterIndex();
     void computeOrbit(int n);
     void changeOrbitXRange(double lower, double upper);
+    void computeBifurcations();
+    void changeBifurcationsXRange(double lower, double upper);
 
     void computeAll();
-
-signals:
-    void orbitComputed();
 };
 
 #endif // LOGISTIC_H

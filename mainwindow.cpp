@@ -32,12 +32,25 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     parameterSlider = new QSlider(Qt::Horizontal);
     parameterSlider->setMinimum(0);
     parameterSlider->setMaximum(logistic.parameterIntervalSize);
-    parameterSlider->setValue(900);
+    parameterSlider->setValue(0);
+
+    QLabel *parameterValuesLabel = new QLabel("#Values");
+
+    parameterValuesSpinBox = new QSpinBox;
+    parameterValuesSpinBox->setRange(10, 10000000);
+    parameterValuesSpinBox->setValue(logistic.parameterIntervalSize);
+
+    centerParameterPushButton = new QPushButton("Center");
 
     QHBoxLayout *parameterHBoxLayout = new QHBoxLayout;
     parameterHBoxLayout->addWidget(parameterLabel);
     parameterHBoxLayout->addWidget(parameterSpinBox);
     parameterHBoxLayout->addWidget(parameterSlider);
+    parameterHBoxLayout->addWidget(parameterValuesLabel);
+    parameterHBoxLayout->addWidget(parameterValuesSpinBox);
+    parameterHBoxLayout->addWidget(centerParameterPushButton);
+
+    parameterSafetyFlag = false;
 
     // Main controls
 
@@ -73,10 +86,35 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     QGroupBox *orbitGroupBox = new QGroupBox("Orbit");
     orbitGroupBox->setLayout(orbitVBoxLayout);
 
+    // Bifurcations controls
+
+    QLabel *bifurcationsTransientLabel = new QLabel("Transient:");
+
+    bifurcationsTransientSpinBox = new QSpinBox;
+    bifurcationsTransientSpinBox->setRange(0, 10000000);
+    bifurcationsTransientSpinBox->setValue(logistic.bifurcationsTransient);
+
+    QLabel *bifurcationsItsLabel = new QLabel("#Iterations:");
+
+    bifurcationsItsSpinBox = new QSpinBox;
+    bifurcationsItsSpinBox->setRange(1, 10000000);
+    bifurcationsItsSpinBox->setValue(logistic.bifurcationsIts);
+
+    QVBoxLayout *bifurcationsVBoxLayout = new QVBoxLayout;
+    bifurcationsVBoxLayout->addWidget(bifurcationsTransientLabel);
+    bifurcationsVBoxLayout->addWidget(bifurcationsTransientSpinBox);
+    bifurcationsVBoxLayout->addWidget(bifurcationsItsLabel);
+    bifurcationsVBoxLayout->addWidget(bifurcationsItsSpinBox);
+
+    QGroupBox *bifurcationsGroupBox = new QGroupBox("Bifurcations");
+    bifurcationsGroupBox->setLayout(bifurcationsVBoxLayout);
+
     // Main controls vertical layout & widget
 
     QVBoxLayout *mainControlsVBoxLayout = new QVBoxLayout;
+    mainControlsVBoxLayout->setAlignment(Qt::AlignTop);
     mainControlsVBoxLayout->addWidget(orbitGroupBox, 0, Qt::AlignTop);
+    mainControlsVBoxLayout->addWidget(bifurcationsGroupBox, 0, Qt::AlignTop);
 
     QWidget *mainControlsWidget = new QWidget;
     mainControlsWidget->setLayout(mainControlsVBoxLayout);
@@ -88,7 +126,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     orbitPlot = new QCustomPlot(this);
 
     orbitPlot->xAxis->setLabel("Iteration");
-    orbitPlot->yAxis->setLabel("x");
+    orbitPlot->yAxis->setLabel("Xi");
 
     orbitPlot->yAxis->setRange(0, 1);
 
@@ -101,15 +139,10 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     orbitPlot->addGraph();
     orbitPlot->graph(0)->setPen(QPen(Qt::blue));
     orbitPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 3));
-    //orbitPlot->graph(0)->setName("Orbit #1");
 
     orbitPlot->addGraph();
     orbitPlot->graph(1)->setPen(QPen(Qt::red));
     orbitPlot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 3));
-    //orbitPlot->graph(1)->setName("Orbit #2");
-
-    //orbitPlot->legend->setVisible(true);
-    //orbitPlot->legend->setBrush(QColor(255, 255, 255, 150));
 
     setOrbitPlot();
 
@@ -119,7 +152,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     histogramPlot->axisRect()->setupFullAxesBox(true);
 
-    histogramPlot->xAxis->setLabel("x");
+    histogramPlot->xAxis->setLabel("X");
     histogramPlot->yAxis->setLabel("Histogram");
 
     histogram = new QCPBars(histogramPlot->xAxis, histogramPlot->yAxis);
@@ -129,7 +162,10 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     bifurcationsPlot = new QCustomPlot(this);
 
     bifurcationsPlot->xAxis->setLabel("Parameter");
-    bifurcationsPlot->yAxis->setLabel("x");
+    bifurcationsPlot->yAxis->setLabel("X(r)");
+
+    bifurcationsPlot->xAxis->setRange(0, 4);
+    bifurcationsPlot->yAxis->setRange(0, 1);
 
     bifurcationsPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
 
@@ -149,7 +185,27 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     }
 
     bifurcationsPlot->addGraph();
-    bifurcationsPlot->graph(0)->setName("Bifurcations");
+    bifurcationsPlot->graph(0)->setLineStyle(QCPGraph::lsNone);
+    bifurcationsPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 0.3));
+    bifurcationsPlot->graph(0)->setPen(QPen(Qt::white));
+    bifurcationsPlot->graph(0)->setAdaptiveSampling(false);
+
+    // Bifurcations plot cursor layer
+
+    bifurcationsPlot->addLayer("cursor", bifurcationsPlot->layer("main"), QCustomPlot::limAbove);
+    bifurcationsPlot->layer("cursor")->setMode(QCPLayer::lmBuffered);
+
+    // Bifurcations parameter cursor
+
+    bifurcationsLine = new QCPItemLine(bifurcationsPlot);
+    bifurcationsLine->setLayer("cursor");
+
+    bifurcationsLine->setPen(QPen(Qt::red));
+
+    bifurcationsLine->start->setCoords(logistic.parameter, 0);
+    bifurcationsLine->end->setCoords(logistic.parameter, 1);
+
+    setBifurcationsPlot();
 
     // Lyapunov plot
 
@@ -176,7 +232,6 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     }
 
     lyapunovPlot->addGraph();
-    lyapunovPlot->graph(0)->setName("Lyapunov exponent");
 
     // Orbit + Histogram plots left vertical splitter
 
@@ -231,31 +286,89 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     // Signals + Slots
 
-    connect(parameterSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double value){ parameterChanged(value); });
+    connect(parameterSpinBox, &QDoubleSpinBox::editingFinished, this, &MainWindow::parameterChanged);
     connect(parameterSlider, &QAbstractSlider::valueChanged, this, &MainWindow::parameterIndexChanged);
-    connect(&logistic, &Logistic::orbitComputed, this, &MainWindow::setOrbitPlot);
+    connect(parameterValuesSpinBox, &QSpinBox::editingFinished, this, &MainWindow::parameterValuesChanged);
+    connect(centerParameterPushButton, &QPushButton::clicked, this, &MainWindow::centerParameter);
     connect(orbitPlot, &QCustomPlot::beforeReplot, this, &MainWindow::orbitPlotRangeChanged);
     connect(orbitPlot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ orbitPlot->xAxis->setRange(newRange.bounded(0, logistic.orbit[0].xMax + 100)); });
     connect(orbitPlot->yAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ orbitPlot->yAxis->setRange(newRange.bounded(0, 1)); });
     connect(showSecondOrbitCheckbox, &QCheckBox::stateChanged, this, &MainWindow::toggleSecondOrbit);
-    connect(initialCondition0SpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double value){ initialCondition0Changed(value); });
-    connect(initialCondition1SpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double value){ initialCondition1Changed(value); });
+    connect(initialCondition0SpinBox, &QDoubleSpinBox::editingFinished, this, &MainWindow::initialCondition0Changed);
+    connect(initialCondition1SpinBox, &QDoubleSpinBox::editingFinished, this, &MainWindow::initialCondition1Changed);
+    connect(bifurcationsPlot, &QCustomPlot::beforeReplot, this, &MainWindow::bifurcationsPlotRangeChanged);
+    connect(bifurcationsPlot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ bifurcationsPlot->xAxis->setRange(newRange.bounded(0, 4)); });
+    connect(bifurcationsPlot->yAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ bifurcationsPlot->yAxis->setRange(newRange.bounded(0, 1)); });
+    connect(bifurcationsTransientSpinBox, &QSpinBox::editingFinished, this, &MainWindow::bifurcationsTransientChanged);
+    connect(bifurcationsItsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::bifurcationsItsChanged);
 }
 
 MainWindow::~MainWindow()
 {
 }
 
+void MainWindow::parameterChanged()
+{
+    logistic.parameter = parameterSpinBox->value();
+    logistic.computeAll();
+
+    setOrbitPlot();
+
+    shiftBifurcationsLine(logistic.parameter);
+
+    parameterSafetyFlag = true;
+    parameterSlider->setValue(logistic.getParameterIndex());
+}
+
 void MainWindow::parameterIndexChanged(int i)
 {
-    logistic.parameter = logistic.parameterInterval[i];
+    if (!parameterSafetyFlag)
+    {
+        logistic.parameter = logistic.parameterInterval[i];
+    }
+    else
+    {
+        parameterSafetyFlag = false;
+    }
+
+    logistic.computeAll();
+
+    parameterSpinBox->setValue(logistic.parameter);
+
+    setOrbitPlot();
+
+    shiftBifurcationsLine(logistic.parameter);
+}
+
+void MainWindow::parameterValuesChanged()
+{
+    logistic.parameterIntervalSize = parameterValuesSpinBox->value();
+
+    logistic.computeParameterInterval();
+    logistic.computeBifurcations();
+
+    setBifurcationsPlot();
+
+    parameterSafetyFlag = true;
+
+    int index = logistic.getParameterIndex();
+    logistic.parameter = logistic.parameterInterval[index];
+
+    parameterSlider->setMaximum(logistic.parameterIntervalSize);
+    parameterSlider->setValue(index);
+
     parameterSpinBox->setValue(logistic.parameter);
 }
 
-void MainWindow::parameterChanged(double value)
+void MainWindow::centerParameter()
 {
-    logistic.parameter = value;
+    logistic.centerParameter();
     logistic.computeAll();
+
+    parameterSpinBox->setValue(logistic.parameter);
+    parameterSlider->setValue(logistic.parameterIntervalSize >> 1);
+
+    setOrbitPlot();
 }
 
 void MainWindow::setOrbitPlot()
@@ -299,18 +412,55 @@ void MainWindow::toggleSecondOrbit(int state)
     }
 }
 
-void MainWindow::initialCondition0Changed(double value)
+void MainWindow::initialCondition0Changed()
 {
-    logistic.initialCondition[0] = value;
+    logistic.initialCondition[0] = initialCondition0SpinBox->value();
     logistic.computeOrbit(0);
     orbitPlot->graph(0)->setData(logistic.orbit[0].x, logistic.orbit[0].y, true);
     orbitPlot->replot();
 }
 
-void MainWindow::initialCondition1Changed(double value)
+void MainWindow::initialCondition1Changed()
 {
-    logistic.initialCondition[1] = value;
+    logistic.initialCondition[1] = initialCondition1SpinBox->value();
     logistic.computeOrbit(1);
     orbitPlot->graph(1)->setData(logistic.orbit[1].x, logistic.orbit[1].y, true);
     orbitPlot->replot();
+}
+
+void MainWindow::setBifurcationsPlot()
+{
+    bifurcationsPlot->graph(0)->setData(logistic.bifurcations.x, logistic.bifurcations.y, true);
+    bifurcationsPlot->xAxis->setRange(logistic.bifurcations.x.first(), logistic.bifurcations.x.last());
+    bifurcationsPlot->replot();
+}
+
+void MainWindow::bifurcationsPlotRangeChanged()
+{
+    QCPRange xRange = bifurcationsPlot->xAxis->range();
+
+    logistic.changeBifurcationsXRange(xRange.lower, xRange.upper);
+
+    setBifurcationsPlot();
+}
+
+void MainWindow::bifurcationsTransientChanged()
+{
+    logistic.bifurcationsTransient = bifurcationsTransientSpinBox->value();
+    logistic.computeBifurcations();
+    setBifurcationsPlot();
+}
+
+void MainWindow::bifurcationsItsChanged()
+{
+    logistic.bifurcationsIts = bifurcationsItsSpinBox->value();
+    logistic.computeBifurcations();
+    setBifurcationsPlot();
+}
+
+void MainWindow::shiftBifurcationsLine(double value)
+{
+    bifurcationsLine->start->setCoords(value, 0);
+    bifurcationsLine->end->setCoords(value, 1);
+    bifurcationsPlot->layer("cursor")->replot();
 }

@@ -24,26 +24,36 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
     parameterMin = 0;
     parameterMax = 4;
 
-    parameterIntervalSize = 1000;
+    parameterIntervalSize = 500;
 
     computeParameterInterval();
 
-    parameter = parameterInterval[900];
+    parameter = parameterInterval[0];
 
     // Orbit setup
 
     initialCondition[0] = 0.6;
     initialCondition[1] = 0.61;
 
-    orbit[0].xMin = 1000;
-    orbit[0].xMax = 1200;
+    orbit[0].xMin = 600;
+    orbit[0].xMax = 700;
 
-    orbit[1].xMin = 1000;
-    orbit[1].xMax = 1200;
+    orbit[1].xMin = 600;
+    orbit[1].xMax = 700;
 
     computeOrbit(0);
 
     showSecondOrbit = false;
+
+    // Bifurcations setup
+
+    bifurcations.xMin = 0;
+    bifurcations.xMax = 4;
+
+    bifurcationsTransient = 600;
+    bifurcationsIts = 1000;
+
+    computeBifurcations();
 }
 
 void Logistic::computeParameterInterval()
@@ -55,6 +65,34 @@ void Logistic::computeParameterInterval()
         double r = parameterMin + (parameterMax - parameterMin) * i / parameterIntervalSize;
         parameterInterval.push_back(r);
     }
+}
+
+void Logistic::centerParameter()
+{
+    parameterMin = bifurcations.xMin;
+    parameterMax = bifurcations.xMax;
+
+    computeParameterInterval();
+
+    parameter = parameterInterval[parameterIntervalSize >> 1];
+}
+
+int Logistic::getParameterIndex()
+{
+    int index = 0;
+    double distanceMin = 100.0;
+
+   for (int i = 0; i <= parameterIntervalSize; i++)
+   {
+       double distance = fabs(parameter - parameterInterval[i]);
+       if (distance < distanceMin)
+       {
+           index = i;
+           distanceMin = distance;
+       }
+   }
+
+   return index;
 }
 
 void Logistic::computeOrbit(int n)
@@ -92,6 +130,39 @@ void Logistic::changeOrbitXRange(double lower, double upper)
     }
 }
 
+void Logistic::computeBifurcations()
+{
+    bifurcations.x.clear();
+    bifurcations.y.clear();
+
+    for (int i = 0; i <= parameterIntervalSize; i++)
+    {
+        double r = bifurcations.xMin + (bifurcations.xMax - bifurcations.xMin) * i / parameterIntervalSize;
+        double y = 1.0 / sqrt(7.0);
+
+        for (int it = 0; it < bifurcationsTransient; it++)
+        {
+            y = r * y * (1.0 - y);
+        }
+
+        for (int it = 0; it < bifurcationsIts; it++)
+        {
+            y = r * y * (1.0 - y);
+
+            bifurcations.x.push_back(r);
+            bifurcations.y.push_back(y);
+        }
+    }
+}
+
+void Logistic::changeBifurcationsXRange(double lower, double upper)
+{
+    bifurcations.xMin = lower;
+    bifurcations.xMax = upper;
+
+    computeBifurcations();
+}
+
 void Logistic::computeAll()
 {
     computeOrbit(0);
@@ -100,6 +171,4 @@ void Logistic::computeAll()
     {
         computeOrbit(1);
     }
-
-    emit(orbitComputed());
 }

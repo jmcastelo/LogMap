@@ -27,8 +27,10 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QCheckBox>
 #include <QSlider>
+#include <QPushButton>
 
 class MainWindow : public QWidget
 {
@@ -43,24 +45,38 @@ private:
 
     QDoubleSpinBox *parameterSpinBox;
     QSlider *parameterSlider;
+    QSpinBox *parameterValuesSpinBox;
+    QPushButton *centerParameterPushButton;
+    bool parameterSafetyFlag;
 
     QDoubleSpinBox *initialCondition0SpinBox;
     QDoubleSpinBox *initialCondition1SpinBox;
     QCheckBox *showSecondOrbitCheckbox;
 
+    QSpinBox *bifurcationsTransientSpinBox;
+    QSpinBox *bifurcationsItsSpinBox;
+
     QCustomPlot *orbitPlot;
     QCustomPlot *bifurcationsPlot;
+    QCPItemLine *bifurcationsLine;
     QCustomPlot *lyapunovPlot;
     QCustomPlot *histogramPlot;
     QCPBars *histogram;
 
+    void parameterChanged();
     void parameterIndexChanged(int i);
+    void parameterValuesChanged();
+    void centerParameter();
     void setOrbitPlot();
     void orbitPlotRangeChanged();
     void toggleSecondOrbit(int state);
-    void initialCondition0Changed(double value);
-    void initialCondition1Changed(double value);
-    void parameterChanged(double value);
+    void initialCondition0Changed();
+    void initialCondition1Changed();
+    void setBifurcationsPlot();
+    void bifurcationsPlotRangeChanged();
+    void bifurcationsTransientChanged();
+    void bifurcationsItsChanged();
+    void shiftBifurcationsLine(double value);
 };
 
 #endif // MAINWINDOW_H
