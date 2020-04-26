@@ -21,14 +21,15 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
 {
     // Parameter setup
 
-    parameterMin = 0;
+    parameterMin = 1;
     parameterMax = 4;
 
     parameterIntervalSize = 500;
 
     computeParameterInterval();
 
-    parameter = parameterInterval[0];
+    parameter = 3.56;
+    parameter = parameterInterval[getParameterIndex()];
 
     // Orbit setup
 
@@ -47,13 +48,21 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
 
     // Bifurcations setup
 
-    bifurcations.xMin = 0;
+    bifurcations.xMin = 1;
     bifurcations.xMax = 4;
 
     bifurcationsTransient = 600;
     bifurcationsIts = 1000;
 
     computeBifurcations();
+
+    // Histogram setup
+
+    histogramBins = 100;
+    histogramTransient = 600;
+    histogramIts = 100000;
+
+    computeHistogram();
 }
 
 void Logistic::computeParameterInterval()
@@ -163,6 +172,40 @@ void Logistic::changeBifurcationsXRange(double lower, double upper)
     computeBifurcations();
 }
 
+void Logistic::computeHistogram()
+{
+    histogram.x.clear();
+    histogram.y.clear();
+
+    histogram.x.reserve(histogramBins);
+    histogram.y.reserve(histogramBins);
+
+    for (int i = 0; i < histogramBins; i++)
+    {
+        histogram.x.push_back((i + 0.5) / histogramBins);
+        histogram.y.push_back(0);
+    }
+
+    double x = 1.0 / sqrt(7.0);
+
+    for (int it = 0; it < histogramTransient; it++)
+    {
+        x = parameter * x * (1.0 - x);
+    }
+
+    for (int it = 0; it < histogramIts; it++)
+    {
+        x = parameter * x * (1.0 - x);
+
+        histogram.y[static_cast<int>(floor(x * histogramBins))]++;
+    }
+
+    for (int i = 0; i < histogramBins; i++)
+    {
+        histogram.y[i] /= histogramIts;
+    }
+}
+
 void Logistic::computeAll()
 {
     computeOrbit(0);
@@ -171,4 +214,6 @@ void Logistic::computeAll()
     {
         computeOrbit(1);
     }
+
+    computeHistogram();
 }

@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     parameterSlider = new QSlider(Qt::Horizontal);
     parameterSlider->setMinimum(0);
     parameterSlider->setMaximum(logistic.parameterIntervalSize);
-    parameterSlider->setValue(0);
+    parameterSlider->setValue(logistic.getParameterIndex());
 
     QLabel *parameterValuesLabel = new QLabel("#Values");
 
@@ -109,12 +109,45 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     QGroupBox *bifurcationsGroupBox = new QGroupBox("Bifurcations");
     bifurcationsGroupBox->setLayout(bifurcationsVBoxLayout);
 
+    // Histogram controls
+
+    QLabel *histogramTransientLabel = new QLabel("Transient");
+
+    histogramTransientSpinBox = new QSpinBox;
+    histogramTransientSpinBox->setRange(0, 10000000);
+    histogramTransientSpinBox->setValue(logistic.histogramTransient);
+
+    QLabel *histogramItsLabel = new QLabel("#Iterations");
+
+    histogramItsSpinBox = new QSpinBox;
+
+    histogramItsSpinBox->setRange(1, 10000000);
+    histogramItsSpinBox->setValue(logistic.histogramIts);
+
+    QLabel *histogramBinsLabel = new QLabel("#Bins");
+
+    histogramBinsSpinBox = new QSpinBox;
+    histogramBinsSpinBox->setRange(1, 1000000);
+    histogramBinsSpinBox->setValue(logistic.histogramBins);
+
+    QVBoxLayout *histogramVBoxLayout = new QVBoxLayout;
+    histogramVBoxLayout->addWidget(histogramTransientLabel);
+    histogramVBoxLayout->addWidget(histogramTransientSpinBox);
+    histogramVBoxLayout->addWidget(histogramItsLabel);
+    histogramVBoxLayout->addWidget(histogramItsSpinBox);
+    histogramVBoxLayout->addWidget(histogramBinsLabel);
+    histogramVBoxLayout->addWidget(histogramBinsSpinBox);
+
+    QGroupBox *histogramGroupBox = new QGroupBox("Invariant density");
+    histogramGroupBox->setLayout(histogramVBoxLayout);
+
     // Main controls vertical layout & widget
 
     QVBoxLayout *mainControlsVBoxLayout = new QVBoxLayout;
     mainControlsVBoxLayout->setAlignment(Qt::AlignTop);
     mainControlsVBoxLayout->addWidget(orbitGroupBox, 0, Qt::AlignTop);
     mainControlsVBoxLayout->addWidget(bifurcationsGroupBox, 0, Qt::AlignTop);
+    mainControlsVBoxLayout->addWidget(histogramGroupBox, 0, Qt::AlignTop);
 
     QWidget *mainControlsWidget = new QWidget;
     mainControlsWidget->setLayout(mainControlsVBoxLayout);
@@ -155,7 +188,16 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     histogramPlot->xAxis->setLabel("X");
     histogramPlot->yAxis->setLabel("Histogram");
 
+    histogramPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
+
+    histogramPlot->axisRect()->setupFullAxesBox();
+    histogramPlot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
+    histogramPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
+
     histogram = new QCPBars(histogramPlot->xAxis, histogramPlot->yAxis);
+    histogram->setWidth(1.0 / logistic.histogramBins);
+
+    setHistogramPlot();
 
     // Bifurcations plot
 
@@ -301,6 +343,11 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     connect(bifurcationsPlot->yAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ bifurcationsPlot->yAxis->setRange(newRange.bounded(0, 1)); });
     connect(bifurcationsTransientSpinBox, &QSpinBox::editingFinished, this, &MainWindow::bifurcationsTransientChanged);
     connect(bifurcationsItsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::bifurcationsItsChanged);
+    connect(histogramPlot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ histogramPlot->xAxis->setRange(newRange.bounded(0, 1)); });
+    connect(histogramPlot->yAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ histogramPlot->yAxis->setRange(newRange.bounded(0, 1)); });
+    connect(histogramTransientSpinBox, &QSpinBox::editingFinished, this, &MainWindow::histogramTransientChanged);
+    connect(histogramItsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::histogramItsChanged);
+    connect(histogramBinsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::histogramBinsChanged);
 }
 
 MainWindow::~MainWindow()
@@ -313,6 +360,7 @@ void MainWindow::parameterChanged()
     logistic.computeAll();
 
     setOrbitPlot();
+    setHistogramPlot();
 
     shiftBifurcationsLine(logistic.parameter);
 
@@ -336,6 +384,7 @@ void MainWindow::parameterIndexChanged(int i)
     parameterSpinBox->setValue(logistic.parameter);
 
     setOrbitPlot();
+    setHistogramPlot();
 
     shiftBifurcationsLine(logistic.parameter);
 }
@@ -463,4 +512,33 @@ void MainWindow::shiftBifurcationsLine(double value)
     bifurcationsLine->start->setCoords(value, 0);
     bifurcationsLine->end->setCoords(value, 1);
     bifurcationsPlot->layer("cursor")->replot();
+}
+
+void MainWindow::setHistogramPlot()
+{
+    histogram->setData(logistic.histogram.x, logistic.histogram.y);
+    histogram->setWidth(1.0 / logistic.histogramBins);
+    histogramPlot->replot();
+    histogramPlot->rescaleAxes();
+}
+
+void MainWindow::histogramTransientChanged()
+{
+    logistic.histogramTransient = histogramTransientSpinBox->value();
+    logistic.computeHistogram();
+    setHistogramPlot();
+}
+
+void MainWindow::histogramItsChanged()
+{
+    logistic.histogramIts = histogramItsSpinBox->value();
+    logistic.computeHistogram();
+    setHistogramPlot();
+}
+
+void MainWindow::histogramBinsChanged()
+{
+    logistic.histogramBins = histogramBinsSpinBox->value();
+    logistic.computeHistogram();
+    setHistogramPlot();
 }

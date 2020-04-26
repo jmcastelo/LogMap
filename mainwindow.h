@@ -56,6 +56,10 @@ private:
     QSpinBox *bifurcationsTransientSpinBox;
     QSpinBox *bifurcationsItsSpinBox;
 
+    QSpinBox *histogramTransientSpinBox;
+    QSpinBox *histogramItsSpinBox;
+    QSpinBox *histogramBinsSpinBox;
+
     QCustomPlot *orbitPlot;
     QCustomPlot *bifurcationsPlot;
     QCPItemLine *bifurcationsLine;
@@ -67,16 +71,23 @@ private:
     void parameterIndexChanged(int i);
     void parameterValuesChanged();
     void centerParameter();
+
     void setOrbitPlot();
     void orbitPlotRangeChanged();
     void toggleSecondOrbit(int state);
     void initialCondition0Changed();
     void initialCondition1Changed();
+
     void setBifurcationsPlot();
     void bifurcationsPlotRangeChanged();
     void bifurcationsTransientChanged();
     void bifurcationsItsChanged();
     void shiftBifurcationsLine(double value);
+
+    void setHistogramPlot();
+    void histogramTransientChanged();
+    void histogramItsChanged();
+    void histogramBinsChanged();
 };
 
 #endif // MAINWINDOW_H

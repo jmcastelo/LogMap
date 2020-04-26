@@ -52,10 +52,14 @@ public:
     void computeParameterInterval();
     void centerParameter();
     int getParameterIndex();
+
     void computeOrbit(int n);
     void changeOrbitXRange(double lower, double upper);
+
     void computeBifurcations();
     void changeBifurcationsXRange(double lower, double upper);
+
+    void computeHistogram();
 
     void computeAll();
 };
