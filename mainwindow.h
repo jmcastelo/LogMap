@@ -27,6 +27,7 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QDoubleSpinBox>
+#include <QCheckBox>
 #include <QSlider>
 
 class MainWindow : public QWidget
@@ -45,6 +46,7 @@ private:
 
     QDoubleSpinBox *initialCondition0SpinBox;
     QDoubleSpinBox *initialCondition1SpinBox;
+    QCheckBox *showSecondOrbitCheckbox;
 
     QCustomPlot *orbitPlot;
     QCustomPlot *bifurcationsPlot;
@@ -53,7 +55,10 @@ private:
     QCPBars *histogram;
 
     void setOrbitPlot();
-    void orbitPlotRangeChanged(QMouseEvent *event);
+    void orbitPlotRangeChanged();
+    void toggleSecondOrbit(int state);
+    void initialCondition0Changed(double value);
+    void initialCondition1Changed(double value);
 };
 
 #endif // MAINWINDOW_H

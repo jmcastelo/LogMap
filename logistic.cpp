@@ -42,7 +42,6 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
     orbit[1].xMax = 1200;
 
     computeOrbit(0);
-    computeOrbit(1);
 
     showSecondOrbit = false;
 }
@@ -65,15 +64,31 @@ void Logistic::computeOrbit(int n)
 
     double y = initialCondition[n];
 
-    for (int it = 0; it <= orbit[n].xMax + 200; it++)
+    for (int it = 0; it <= orbit[n].xMax; it++)
     {
-        if (it >= orbit[n].xMin - 200)
+        if (it >= orbit[n].xMin)
         {
             orbit[n].x.push_back(it);
             orbit[n].y.push_back(y);
         }
 
         y = parameter * y * (1.0 - y);
+    }
+}
+
+void Logistic::changeOrbitXRange(double lower, double upper)
+{
+    orbit[0].xMin = lower;
+    orbit[0].xMax = upper;
+
+    computeOrbit(0);
+
+    orbit[1].xMin = lower;
+    orbit[1].xMax = upper;
+
+    if (showSecondOrbit)
+    {
+        computeOrbit(1);
     }
 }
 

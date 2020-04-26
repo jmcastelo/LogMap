@@ -36,25 +36,32 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     // Orbit controls
 
-    QLabel *initialCondition0Label = new QLabel("Initial condition:");
+    QLabel *initialCondition0Label = new QLabel("Initial condition #1:");
 
     initialCondition0SpinBox = new QDoubleSpinBox;
     initialCondition0SpinBox->setRange(0, 1);
+    initialCondition0SpinBox->setDecimals(15);
     initialCondition0SpinBox->setValue(logistic.initialCondition[0]);
     initialCondition0SpinBox->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
 
-    QLabel *initialCondition1Label = new QLabel("Initial condition:");
+    QLabel *initialCondition1Label = new QLabel("Initial condition #2:");
 
     initialCondition1SpinBox = new QDoubleSpinBox;
     initialCondition1SpinBox->setRange(0, 1);
+    initialCondition1SpinBox->setDecimals(15);
     initialCondition1SpinBox->setValue(logistic.initialCondition[1]);
     initialCondition1SpinBox->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
+    initialCondition1SpinBox->setDisabled(true);
+
+    showSecondOrbitCheckbox = new QCheckBox("Show orbit #2");
+    showSecondOrbitCheckbox->setChecked(false);
 
     QVBoxLayout *orbitVBoxLayout = new QVBoxLayout;
     orbitVBoxLayout->addWidget(initialCondition0Label);
     orbitVBoxLayout->addWidget(initialCondition0SpinBox);
     orbitVBoxLayout->addWidget(initialCondition1Label);
     orbitVBoxLayout->addWidget(initialCondition1SpinBox);
+    orbitVBoxLayout->addWidget(showSecondOrbitCheckbox);
 
     QGroupBox *orbitGroupBox = new QGroupBox("Orbit");
     orbitGroupBox->setLayout(orbitVBoxLayout);
@@ -85,10 +92,17 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     orbitPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
 
     orbitPlot->addGraph();
-    orbitPlot->graph(0)->setName("Orbit");
+    orbitPlot->graph(0)->setPen(QPen(Qt::blue));
+    orbitPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 3));
+    //orbitPlot->graph(0)->setName("Orbit #1");
 
-    orbitPlot->legend->setVisible(true);
-    orbitPlot->legend->setBrush(QColor(255, 255, 255, 150));
+    orbitPlot->addGraph();
+    orbitPlot->graph(1)->setPen(QPen(Qt::red));
+    orbitPlot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 3));
+    //orbitPlot->graph(1)->setName("Orbit #2");
+
+    //orbitPlot->legend->setVisible(true);
+    //orbitPlot->legend->setBrush(QColor(255, 255, 255, 150));
 
     setOrbitPlot();
 
@@ -212,8 +226,12 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     connect(parameterSlider, &QAbstractSlider::valueChanged, &logistic, &Logistic::parameterIndexChanged);
     connect(&logistic, &Logistic::orbitComputed, this, &MainWindow::setOrbitPlot);
-    connect(orbitPlot, &QCustomPlot::mouseRelease, this, &MainWindow::orbitPlotRangeChanged);
-    connect(orbitPlot->yAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ if (orbitPlot->graph(0)->dataCount() > 0) orbitPlot->yAxis->setRange(newRange.bounded(0, 1)); });
+    connect(orbitPlot, &QCustomPlot::beforeReplot, this, &MainWindow::orbitPlotRangeChanged);
+    connect(orbitPlot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ orbitPlot->xAxis->setRange(newRange.bounded(0, logistic.orbit[0].xMax + 100)); });
+    connect(orbitPlot->yAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ orbitPlot->yAxis->setRange(newRange.bounded(0, 1)); });
+    connect(showSecondOrbitCheckbox, &QCheckBox::stateChanged, this, &MainWindow::toggleSecondOrbit);
+    connect(initialCondition0SpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double value){ initialCondition0Changed(value); });
+    connect(initialCondition1SpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double value){ initialCondition1Changed(value); });
 }
 
 MainWindow::~MainWindow()
@@ -223,20 +241,56 @@ MainWindow::~MainWindow()
 void MainWindow::setOrbitPlot()
 {
     orbitPlot->graph(0)->setData(logistic.orbit[0].x, logistic.orbit[0].y, true);
+    orbitPlot->graph(1)->setData(logistic.orbit[1].x, logistic.orbit[1].y, true);
     orbitPlot->xAxis->setRange(logistic.orbit[0].xMin, logistic.orbit[0].xMax);
     orbitPlot->replot();
 }
 
-void MainWindow::orbitPlotRangeChanged(QMouseEvent *event)
+void MainWindow::orbitPlotRangeChanged()
 {
-    Q_UNUSED(event)
-
     QCPRange xRange = orbitPlot->xAxis->range();
 
-    logistic.orbit[0].xMin = xRange.lower;
-    logistic.orbit[0].xMax = xRange.upper;
-
-    logistic.computeOrbit(0);
+    logistic.changeOrbitXRange(xRange.lower, xRange.upper);
 
     setOrbitPlot();
+}
+
+void MainWindow::toggleSecondOrbit(int state)
+{
+    if (state == Qt::Unchecked)
+    {
+        logistic.showSecondOrbit = false;
+
+        orbitPlot->graph(1)->setVisible(false);
+        orbitPlot->replot();
+
+        initialCondition1SpinBox->setDisabled(true);
+    }
+    else if (state == Qt::Checked)
+    {
+        logistic.showSecondOrbit = true;
+        logistic.computeOrbit(1);
+
+        orbitPlot->graph(1)->setData(logistic.orbit[1].x, logistic.orbit[1].y, true);
+        orbitPlot->graph(1)->setVisible(true);
+        orbitPlot->replot();
+
+        initialCondition1SpinBox->setDisabled(false);
+    }
+}
+
+void MainWindow::initialCondition0Changed(double value)
+{
+    logistic.initialCondition[0] = value;
+    logistic.computeOrbit(0);
+    orbitPlot->graph(0)->setData(logistic.orbit[0].x, logistic.orbit[0].y, true);
+    orbitPlot->replot();
+}
+
+void MainWindow::initialCondition1Changed(double value)
+{
+    logistic.initialCondition[1] = value;
+    logistic.computeOrbit(1);
+    orbitPlot->graph(1)->setData(logistic.orbit[1].x, logistic.orbit[1].y, true);
+    orbitPlot->replot();
 }

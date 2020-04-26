@@ -50,6 +50,7 @@ public:
     void computeParameterInterval();
     void setParameter(double r);
     void computeOrbit(int n);
+    void changeOrbitXRange(double lower, double upper);
 
     void parameterIndexChanged(int i);
 
