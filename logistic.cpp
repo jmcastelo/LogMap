@@ -28,7 +28,7 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
 
     computeParameterInterval();
 
-    parameter = parameterInterval[500];
+    parameter = parameterInterval[900];
 
     // Orbit setup
 
@@ -92,10 +92,8 @@ void Logistic::changeOrbitXRange(double lower, double upper)
     }
 }
 
-void Logistic::parameterIndexChanged(int i)
+void Logistic::computeAll()
 {
-    parameter = parameterInterval[i];
-
     computeOrbit(0);
 
     if (showSecondOrbit)

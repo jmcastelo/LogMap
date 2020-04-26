@@ -52,7 +52,7 @@ public:
     void computeOrbit(int n);
     void changeOrbitXRange(double lower, double upper);
 
-    void parameterIndexChanged(int i);
+    void computeAll();
 
 signals:
     void orbitComputed();

@@ -41,7 +41,7 @@ public:
 private:
     Logistic logistic;
 
-    QLabel *parameterLabel;
+    QDoubleSpinBox *parameterSpinBox;
     QSlider *parameterSlider;
 
     QDoubleSpinBox *initialCondition0SpinBox;
@@ -54,11 +54,13 @@ private:
     QCustomPlot *histogramPlot;
     QCPBars *histogram;
 
+    void parameterIndexChanged(int i);
     void setOrbitPlot();
     void orbitPlotRangeChanged();
     void toggleSecondOrbit(int state);
     void initialCondition0Changed(double value);
     void initialCondition1Changed(double value);
+    void parameterChanged(double value);
 };
 
 #endif // MAINWINDOW_H

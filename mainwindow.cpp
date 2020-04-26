@@ -21,15 +21,22 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
     // Parameter controls
 
-    parameterLabel = new QLabel;
-    parameterLabel->setText(QString("Parameter: %1").arg(logistic.parameter));
+    QLabel *parameterLabel = new QLabel("Parameter");
+
+    parameterSpinBox = new QDoubleSpinBox;
+    parameterSpinBox->setRange(0, 4);
+    parameterSpinBox->setDecimals(12);
+    parameterSpinBox->setValue(logistic.parameter);
+    parameterSpinBox->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
 
     parameterSlider = new QSlider(Qt::Horizontal);
     parameterSlider->setMinimum(0);
     parameterSlider->setMaximum(logistic.parameterIntervalSize);
+    parameterSlider->setValue(900);
 
     QHBoxLayout *parameterHBoxLayout = new QHBoxLayout;
     parameterHBoxLayout->addWidget(parameterLabel);
+    parameterHBoxLayout->addWidget(parameterSpinBox);
     parameterHBoxLayout->addWidget(parameterSlider);
 
     // Main controls
@@ -40,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     initialCondition0SpinBox = new QDoubleSpinBox;
     initialCondition0SpinBox->setRange(0, 1);
-    initialCondition0SpinBox->setDecimals(15);
+    initialCondition0SpinBox->setDecimals(12);
     initialCondition0SpinBox->setValue(logistic.initialCondition[0]);
     initialCondition0SpinBox->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
 
@@ -48,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     initialCondition1SpinBox = new QDoubleSpinBox;
     initialCondition1SpinBox->setRange(0, 1);
-    initialCondition1SpinBox->setDecimals(15);
+    initialCondition1SpinBox->setDecimals(12);
     initialCondition1SpinBox->setValue(logistic.initialCondition[1]);
     initialCondition1SpinBox->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
     initialCondition1SpinBox->setDisabled(true);
@@ -224,7 +231,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     // Signals + Slots
 
-    connect(parameterSlider, &QAbstractSlider::valueChanged, &logistic, &Logistic::parameterIndexChanged);
+    connect(parameterSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double value){ parameterChanged(value); });
+    connect(parameterSlider, &QAbstractSlider::valueChanged, this, &MainWindow::parameterIndexChanged);
     connect(&logistic, &Logistic::orbitComputed, this, &MainWindow::setOrbitPlot);
     connect(orbitPlot, &QCustomPlot::beforeReplot, this, &MainWindow::orbitPlotRangeChanged);
     connect(orbitPlot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ orbitPlot->xAxis->setRange(newRange.bounded(0, logistic.orbit[0].xMax + 100)); });
@@ -236,6 +244,18 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::parameterIndexChanged(int i)
+{
+    logistic.parameter = logistic.parameterInterval[i];
+    parameterSpinBox->setValue(logistic.parameter);
+}
+
+void MainWindow::parameterChanged(double value)
+{
+    logistic.parameter = value;
+    logistic.computeAll();
 }
 
 void MainWindow::setOrbitPlot()
