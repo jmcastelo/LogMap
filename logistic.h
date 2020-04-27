@@ -60,6 +60,9 @@ public:
     void changeBifurcationsXRange(double lower, double upper);
 
     void computeHistogram();
+    void changeLyapunovXRange(double lower, double upper);
+
+    void computeLyapunov();
 
     void computeAll();
 };

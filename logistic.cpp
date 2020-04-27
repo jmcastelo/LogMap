@@ -63,6 +63,15 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
     histogramIts = 100000;
 
     computeHistogram();
+
+    // Lyapunov setup
+
+    lyapunov.xMin = 1;
+    lyapunov.xMax = 4;
+
+    lyapunovIts = 5000;
+
+    computeLyapunov();
 }
 
 void Logistic::computeParameterInterval()
@@ -144,6 +153,9 @@ void Logistic::computeBifurcations()
     bifurcations.x.clear();
     bifurcations.y.clear();
 
+    bifurcations.x.reserve((parameterIntervalSize + 1) * bifurcationsIts);
+    bifurcations.y.reserve((parameterIntervalSize + 1) * bifurcationsIts);
+
     for (int i = 0; i <= parameterIntervalSize; i++)
     {
         double r = bifurcations.xMin + (bifurcations.xMax - bifurcations.xMin) * i / parameterIntervalSize;
@@ -204,6 +216,39 @@ void Logistic::computeHistogram()
     {
         histogram.y[i] /= histogramIts;
     }
+}
+
+void Logistic::computeLyapunov()
+{
+    lyapunov.x.clear();
+    lyapunov.y.clear();
+
+    lyapunov.x.reserve(parameterIntervalSize + 1);
+    lyapunov.y.reserve(parameterIntervalSize + 1);
+
+    for (int i = 0; i <= parameterIntervalSize; i++)
+    {
+        double r = lyapunov.xMin + (lyapunov.xMax - lyapunov.xMin) * i / parameterIntervalSize;
+        double y = 1.0 / sqrt(7.0);
+        double exponent = log(r);
+
+        for (int it = 0; it < lyapunovIts; it++)
+        {
+            exponent += log(fabs(1.0 - 2.0 * y)) / lyapunovIts;
+            y = r * y * (1.0 - y);
+        }
+
+        lyapunov.x.push_back(r);
+        lyapunov.y.push_back(exponent);
+    }
+}
+
+void Logistic::changeLyapunovXRange(double lower, double upper)
+{
+    lyapunov.xMin = lower;
+    lyapunov.xMax = upper;
+
+    computeLyapunov();
 }
 
 void Logistic::computeAll()

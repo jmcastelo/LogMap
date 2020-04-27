@@ -23,6 +23,7 @@
 #include <QWidget>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QGridLayout>
 #include <QSplitter>
 #include <QGroupBox>
 #include <QLabel>
@@ -60,10 +61,14 @@ private:
     QSpinBox *histogramItsSpinBox;
     QSpinBox *histogramBinsSpinBox;
 
+    QLabel *lyapunovExponentLabel;
+    QSpinBox *lyapunovItsSpinBox;
+
     QCustomPlot *orbitPlot;
     QCustomPlot *bifurcationsPlot;
     QCPItemLine *bifurcationsLine;
     QCustomPlot *lyapunovPlot;
+    QCPItemLine *lyapunovLine;
     QCustomPlot *histogramPlot;
     QCPBars *histogram;
 
@@ -88,6 +93,12 @@ private:
     void histogramTransientChanged();
     void histogramItsChanged();
     void histogramBinsChanged();
+
+    void setLyapunovPlot();
+    void setLyapunovExponentLabel(int i);
+    void lyapunovPlotRangeChanged();
+    void lyapunovItsChanged();
+    void shiftLyapunovLine(double value);
 };
 
 #endif // MAINWINDOW_H

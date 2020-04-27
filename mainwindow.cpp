@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     // Orbit controls
 
-    QLabel *initialCondition0Label = new QLabel("Initial condition #1:");
+    QLabel *initialCondition0Label = new QLabel("Initial condition #1");
 
     initialCondition0SpinBox = new QDoubleSpinBox;
     initialCondition0SpinBox->setRange(0, 1);
@@ -64,7 +64,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     initialCondition0SpinBox->setValue(logistic.initialCondition[0]);
     initialCondition0SpinBox->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
 
-    QLabel *initialCondition1Label = new QLabel("Initial condition #2:");
+    QLabel *initialCondition1Label = new QLabel("Initial condition #2");
 
     initialCondition1SpinBox = new QDoubleSpinBox;
     initialCondition1SpinBox->setRange(0, 1);
@@ -88,13 +88,13 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     // Bifurcations controls
 
-    QLabel *bifurcationsTransientLabel = new QLabel("Transient:");
+    QLabel *bifurcationsTransientLabel = new QLabel("Transient");
 
     bifurcationsTransientSpinBox = new QSpinBox;
     bifurcationsTransientSpinBox->setRange(0, 10000000);
     bifurcationsTransientSpinBox->setValue(logistic.bifurcationsTransient);
 
-    QLabel *bifurcationsItsLabel = new QLabel("#Iterations:");
+    QLabel *bifurcationsItsLabel = new QLabel("#Iterations");
 
     bifurcationsItsSpinBox = new QSpinBox;
     bifurcationsItsSpinBox->setRange(1, 10000000);
@@ -141,6 +141,25 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     QGroupBox *histogramGroupBox = new QGroupBox("Invariant density");
     histogramGroupBox->setLayout(histogramVBoxLayout);
 
+    // Lyapunov controls
+
+    lyapunovExponentLabel = new QLabel;
+    setLyapunovExponentLabel(logistic.getParameterIndex());
+
+    QLabel *lyapunovItsLabel = new QLabel("#Iterations");
+
+    lyapunovItsSpinBox = new QSpinBox;
+    lyapunovItsSpinBox->setRange(1, 10000000);
+    lyapunovItsSpinBox->setValue(logistic.lyapunovIts);
+
+    QVBoxLayout *lyapunovVBoxLayout = new QVBoxLayout;
+    lyapunovVBoxLayout->addWidget(lyapunovExponentLabel);
+    lyapunovVBoxLayout->addWidget(lyapunovItsLabel);
+    lyapunovVBoxLayout->addWidget(lyapunovItsSpinBox);
+
+    QGroupBox *lyapunovGroupBox = new QGroupBox("Lyapunov exponent");
+    lyapunovGroupBox->setLayout(lyapunovVBoxLayout);
+
     // Main controls vertical layout & widget
 
     QVBoxLayout *mainControlsVBoxLayout = new QVBoxLayout;
@@ -148,6 +167,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     mainControlsVBoxLayout->addWidget(orbitGroupBox, 0, Qt::AlignTop);
     mainControlsVBoxLayout->addWidget(bifurcationsGroupBox, 0, Qt::AlignTop);
     mainControlsVBoxLayout->addWidget(histogramGroupBox, 0, Qt::AlignTop);
+    mainControlsVBoxLayout->addWidget(lyapunovGroupBox, 0, Qt::AlignTop);
 
     QWidget *mainControlsWidget = new QWidget;
     mainControlsWidget->setLayout(mainControlsVBoxLayout);
@@ -186,7 +206,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     histogramPlot->axisRect()->setupFullAxesBox(true);
 
     histogramPlot->xAxis->setLabel("X");
-    histogramPlot->yAxis->setLabel("Histogram");
+    histogramPlot->yAxis->setLabel("Invariant density");
 
     histogramPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
 
@@ -256,6 +276,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     lyapunovPlot->xAxis->setLabel("Parameter");
     lyapunovPlot->yAxis->setLabel("Lyapunov exponent");
 
+    lyapunovPlot->xAxis->setRange(0, 4);
+    lyapunovPlot->yAxis->setRange(-1, 1);
+
     lyapunovPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
 
     lyapunovPlot->axisRect()->setupFullAxesBox(true);
@@ -274,6 +297,24 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     }
 
     lyapunovPlot->addGraph();
+    lyapunovPlot->graph(0)->setPen(QPen(Qt::white));
+
+    // Lyapunov plot cursor layer
+
+    lyapunovPlot->addLayer("cursor", lyapunovPlot->layer("main"), QCustomPlot::limAbove);
+    lyapunovPlot->layer("cursor")->setMode(QCPLayer::lmBuffered);
+
+    // Lyapunov parameter cursor
+
+    lyapunovLine = new QCPItemLine(lyapunovPlot);
+    lyapunovLine->setLayer("cursor");
+
+    lyapunovLine->setPen(QPen(Qt::red));
+
+    lyapunovLine->start->setCoords(logistic.parameter, -100);
+    lyapunovLine->end->setCoords(logistic.parameter, 100);
+
+    setLyapunovPlot();
 
     // Orbit + Histogram plots left vertical splitter
 
@@ -302,23 +343,18 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     splittersSplitter->setCollapsible(0, true);
     splittersSplitter->setCollapsible(1, true);
 
-    // Main splitter
+    // Main grid layout
 
-    QSplitter *mainSplitter = new QSplitter;
-    mainSplitter->setOrientation(Qt::Horizontal);
-    mainSplitter->addWidget(mainControlsWidget);
-    mainSplitter->addWidget(splittersSplitter);
-    mainSplitter->setStretchFactor(0, 0);
-    mainSplitter->setStretchFactor(1, 1);
-    mainSplitter->setCollapsible(0, true);
-    mainSplitter->setCollapsible(1, false);
+    QGridLayout *mainGridLayout = new QGridLayout;
+    mainGridLayout->addWidget(mainControlsWidget, 0, 0, Qt::AlignLeft);
+    mainGridLayout->addWidget(splittersSplitter, 0 ,1);
 
     // Main vertical layout
 
     QVBoxLayout *mainVBoxLayout = new QVBoxLayout;
 
     mainVBoxLayout->addLayout(parameterHBoxLayout);
-    mainVBoxLayout->addWidget(mainSplitter);
+    mainVBoxLayout->addLayout(mainGridLayout);
 
     setLayout(mainVBoxLayout);
 
@@ -348,6 +384,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     connect(histogramTransientSpinBox, &QSpinBox::editingFinished, this, &MainWindow::histogramTransientChanged);
     connect(histogramItsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::histogramItsChanged);
     connect(histogramBinsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::histogramBinsChanged);
+    connect(lyapunovPlot, &QCustomPlot::beforeReplot, this, &MainWindow::lyapunovPlotRangeChanged);
+    connect(lyapunovPlot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged), [this](const QCPRange &newRange){ lyapunovPlot->xAxis->setRange(newRange.bounded(0, 4)); });
+    connect(lyapunovItsSpinBox, &QSpinBox::editingFinished, this, &MainWindow::lyapunovItsChanged);
 }
 
 MainWindow::~MainWindow()
@@ -363,9 +402,15 @@ void MainWindow::parameterChanged()
     setHistogramPlot();
 
     shiftBifurcationsLine(logistic.parameter);
+    shiftLyapunovLine(logistic.parameter);
 
     parameterSafetyFlag = true;
-    parameterSlider->setValue(logistic.getParameterIndex());
+
+    int index = logistic.getParameterIndex();
+
+    parameterSlider->setValue(index);
+
+    setLyapunovExponentLabel(index);
 }
 
 void MainWindow::parameterIndexChanged(int i)
@@ -387,6 +432,9 @@ void MainWindow::parameterIndexChanged(int i)
     setHistogramPlot();
 
     shiftBifurcationsLine(logistic.parameter);
+    shiftLyapunovLine(logistic.parameter);
+
+    setLyapunovExponentLabel(i);
 }
 
 void MainWindow::parameterValuesChanged()
@@ -395,18 +443,23 @@ void MainWindow::parameterValuesChanged()
 
     logistic.computeParameterInterval();
     logistic.computeBifurcations();
+    logistic.computeLyapunov();
 
     setBifurcationsPlot();
+    setLyapunovPlot();
 
     parameterSafetyFlag = true;
 
     int index = logistic.getParameterIndex();
+
     logistic.parameter = logistic.parameterInterval[index];
 
     parameterSlider->setMaximum(logistic.parameterIntervalSize);
     parameterSlider->setValue(index);
 
     parameterSpinBox->setValue(logistic.parameter);
+
+    setLyapunovExponentLabel(index);
 }
 
 void MainWindow::centerParameter()
@@ -489,8 +542,10 @@ void MainWindow::bifurcationsPlotRangeChanged()
     QCPRange xRange = bifurcationsPlot->xAxis->range();
 
     logistic.changeBifurcationsXRange(xRange.lower, xRange.upper);
+    logistic.changeLyapunovXRange(xRange.lower, xRange.upper);
 
     setBifurcationsPlot();
+    setLyapunovPlot();
 }
 
 void MainWindow::bifurcationsTransientChanged()
@@ -541,4 +596,41 @@ void MainWindow::histogramBinsChanged()
     logistic.histogramBins = histogramBinsSpinBox->value();
     logistic.computeHistogram();
     setHistogramPlot();
+}
+
+void MainWindow::setLyapunovPlot()
+{
+    lyapunovPlot->graph(0)->setData(logistic.lyapunov.x, logistic.lyapunov.y, true);
+    lyapunovPlot->xAxis->setRange(logistic.lyapunov.x.first(), logistic.lyapunov.x.last());
+    lyapunovPlot->replot();
+}
+
+void MainWindow::lyapunovPlotRangeChanged()
+{
+    QCPRange xRange = lyapunovPlot->xAxis->range();
+
+    logistic.changeLyapunovXRange(xRange.lower, xRange.upper);
+    logistic.changeBifurcationsXRange(xRange.lower, xRange.upper);
+
+    setLyapunovPlot();
+    setBifurcationsPlot();
+}
+
+void MainWindow::shiftLyapunovLine(double value)
+{
+    lyapunovLine->start->setCoords(value, -100);
+    lyapunovLine->end->setCoords(value, 100);
+    lyapunovPlot->layer("cursor")->replot();
+}
+
+void MainWindow::setLyapunovExponentLabel(int i)
+{
+    lyapunovExponentLabel->setText(QString("%1").arg(logistic.lyapunov.y[i]));
+}
+
+void MainWindow::lyapunovItsChanged()
+{
+    logistic.lyapunovIts = lyapunovItsSpinBox->value();
+    logistic.computeLyapunov();
+    setLyapunovPlot();
 }

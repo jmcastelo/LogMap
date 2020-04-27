@@ -26,6 +26,8 @@ HEADERS += \
     mainwindow.h \
     qcustomplot.h
 
+QMAKE_CXXFLAGS_RELEASE += -O3
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
