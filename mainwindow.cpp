@@ -46,6 +46,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     resetPushButton = new QPushButton("Reset");
 
+    aboutPushButton = new QPushButton("About");
+
     QHBoxLayout *parameterHBoxLayout = new QHBoxLayout;
     parameterHBoxLayout->addWidget(parameterLabel);
     parameterHBoxLayout->addWidget(parameterSpinBox);
@@ -54,6 +56,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     parameterHBoxLayout->addWidget(parameterValuesSpinBox);
     parameterHBoxLayout->addWidget(centerParameterPushButton);
     parameterHBoxLayout->addWidget(resetPushButton);
+    parameterHBoxLayout->addWidget(aboutPushButton);
 
     parameterSafetyFlag = false;
 
@@ -359,7 +362,12 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     setLayout(mainVBoxLayout);
 
-    setWindowTitle("LogMap");
+    setWindowTitle("LogMap - f(x)=rx(1-x)");
+
+    QPixmap pixmap;
+    pixmap.load(":/logo-small.jpg");
+
+    setWindowIcon(QIcon(pixmap));
 
     resize(1200, 800);
 
@@ -371,6 +379,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     // Signals + Slots
 
+    connect(aboutPushButton, &QPushButton::clicked, this, &MainWindow::about);
     connect(parameterSpinBox, &QDoubleSpinBox::editingFinished, this, &MainWindow::parameterChanged);
     connect(parameterSlider, &QAbstractSlider::valueChanged, this, &MainWindow::parameterIndexChanged);
     connect(parameterValuesSpinBox, &QSpinBox::editingFinished, this, &MainWindow::parameterValuesChanged);
@@ -401,6 +410,31 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::about()
+{
+    QMessageBox *aboutBox = new QMessageBox(this);
+
+    aboutBox->setWindowTitle("About");
+
+    aboutBox->setIconPixmap(QPixmap(":/logo-big.jpg"));
+
+    QStringList lines;
+    lines.append("LogMap 2\n");
+    lines.append("Visualize the regular and chaotic features of the Logistic map.\n");
+    lines.append("Required dependencies:");
+    lines.append(" Qt >= 5.14.0");
+    lines.append(" QCustomPlot >= 2.0.1\n");
+    lines.append("Especial thanks to José Ángel Oteo.");
+
+    QString text = lines.join("\n");
+
+    aboutBox->setText(text);
+
+    aboutBox->setInformativeText("Copyright 2020 José María Castelo Ares\njose.maria.castelo@gmail.com\nLicense: GPLv3");
+
+    aboutBox->exec();
 }
 
 void MainWindow::parameterChanged()

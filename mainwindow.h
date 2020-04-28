@@ -49,6 +49,7 @@ private:
     QSpinBox *parameterValuesSpinBox;
     QPushButton *centerParameterPushButton;
     QPushButton *resetPushButton;
+    QPushButton *aboutPushButton;
     bool parameterSafetyFlag;
 
     QDoubleSpinBox *initialCondition0SpinBox;
@@ -115,6 +116,8 @@ private:
 
     void onLyapunovPlotMouseRelease();
     void onLyapunovPlotXRangeChanged(QCPRange newRange);
+
+    void about();
 };
 
 #endif // MAINWINDOW_H
