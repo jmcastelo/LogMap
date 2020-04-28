@@ -17,7 +17,7 @@
 
 #include "logistic.h"
 
-Logistic::Logistic(QObject *parent) : QObject(parent)
+Logistic::Logistic()
 {
     // Parameter setup
 
@@ -51,6 +51,9 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
     bifurcations.xMin = 1;
     bifurcations.xMax = 4;
 
+    bifurcations.yMin = 0;
+    bifurcations.yMax = 1;
+
     bifurcationsTransient = 600;
     bifurcationsIts = 1000;
 
@@ -69,6 +72,7 @@ Logistic::Logistic(QObject *parent) : QObject(parent)
     lyapunov.xMin = 1;
     lyapunov.xMax = 4;
 
+    lyapunovTransient = 600;
     lyapunovIts = 5000;
 
     computeLyapunov();
@@ -153,9 +157,6 @@ void Logistic::computeBifurcations()
     bifurcations.x.clear();
     bifurcations.y.clear();
 
-    bifurcations.x.reserve((parameterIntervalSize + 1) * bifurcationsIts);
-    bifurcations.y.reserve((parameterIntervalSize + 1) * bifurcationsIts);
-
     for (int i = 0; i <= parameterIntervalSize; i++)
     {
         double r = bifurcations.xMin + (bifurcations.xMax - bifurcations.xMin) * i / parameterIntervalSize;
@@ -170,16 +171,31 @@ void Logistic::computeBifurcations()
         {
             y = r * y * (1.0 - y);
 
-            bifurcations.x.push_back(r);
-            bifurcations.y.push_back(y);
+            if (y >= bifurcations.yMin && y <= bifurcations.yMax)
+            {
+                bifurcations.x.push_back(r);
+                bifurcations.y.push_back(y);
+            }
         }
     }
 }
 
-void Logistic::changeBifurcationsXRange(double lower, double upper)
+void Logistic::changeBifurcationsRange(double xLower, double xUpper, double yLower, double yUpper)
 {
-    bifurcations.xMin = lower;
-    bifurcations.xMax = upper;
+    if (xLower < 0)
+    {
+        xLower = 0;
+    }
+    if (xUpper > 4)
+    {
+        xUpper = 4;
+    }
+
+    bifurcations.xMin = xLower;
+    bifurcations.xMax = xUpper;
+
+    bifurcations.yMin = yLower;
+    bifurcations.yMax = yUpper;
 
     computeBifurcations();
 }
@@ -232,10 +248,16 @@ void Logistic::computeLyapunov()
         double y = 1.0 / sqrt(7.0);
         double exponent = log(r);
 
+        for (int it = 0; it < lyapunovTransient; it++)
+        {
+            y = r * y * (1.0 - y);
+        }
+
         for (int it = 0; it < lyapunovIts; it++)
         {
-            exponent += log(fabs(1.0 - 2.0 * y)) / lyapunovIts;
             y = r * y * (1.0 - y);
+
+            exponent += log(fabs(1.0 - 2.0 * y)) / lyapunovIts;
         }
 
         lyapunov.x.push_back(r);
@@ -245,6 +267,15 @@ void Logistic::computeLyapunov()
 
 void Logistic::changeLyapunovXRange(double lower, double upper)
 {
+    if (lower < 0)
+    {
+        lower = 0;
+    }
+    if (upper > 4)
+    {
+        upper = 4;
+    }
+
     lyapunov.xMin = lower;
     lyapunov.xMax = upper;
 
@@ -261,4 +292,24 @@ void Logistic::computeAll()
     }
 
     computeHistogram();
+}
+
+void Logistic::reset()
+{
+    // Bifurcations reset
+
+    bifurcations.xMin = 1;
+    bifurcations.xMax = 4;
+
+    bifurcations.yMin = 0;
+    bifurcations.yMax = 1;
+
+    computeBifurcations();
+
+    // Lyapunov reset
+
+    lyapunov.xMin = 1;
+    lyapunov.xMax = 4;
+
+    computeLyapunov();
 }

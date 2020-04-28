@@ -19,19 +19,17 @@
 #define LOGISTIC_H
 
 #include <math.h>
-#include <QObject>
 #include <QVector>
 
 struct Data
 {
     QVector<double> x, y;
     double xMin, xMax;
+    double yMin, yMax;
 };
 
-class Logistic : public QObject
+class Logistic
 {
-    Q_OBJECT
-
 public:
     Data orbit[2], bifurcations, lyapunov, histogram;
 
@@ -42,12 +40,12 @@ public:
     int parameterIntervalSize;
 
     int bifurcationsTransient, bifurcationsIts;
-    int lyapunovIts;
+    int lyapunovTransient, lyapunovIts;
     int histogramBins, histogramTransient, histogramIts;
 
     bool showSecondOrbit;
 
-    Logistic(QObject *parent = nullptr);
+    Logistic();
 
     void computeParameterInterval();
     void centerParameter();
@@ -57,7 +55,7 @@ public:
     void changeOrbitXRange(double lower, double upper);
 
     void computeBifurcations();
-    void changeBifurcationsXRange(double lower, double upper);
+    void changeBifurcationsRange(double xLower, double xUpper, double yLower, double yUpper);
 
     void computeHistogram();
     void changeLyapunovXRange(double lower, double upper);
@@ -65,6 +63,8 @@ public:
     void computeLyapunov();
 
     void computeAll();
+
+    void reset();
 };
 
 #endif // LOGISTIC_H

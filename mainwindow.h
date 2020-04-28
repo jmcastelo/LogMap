@@ -48,6 +48,7 @@ private:
     QSlider *parameterSlider;
     QSpinBox *parameterValuesSpinBox;
     QPushButton *centerParameterPushButton;
+    QPushButton *resetPushButton;
     bool parameterSafetyFlag;
 
     QDoubleSpinBox *initialCondition0SpinBox;
@@ -62,6 +63,7 @@ private:
     QSpinBox *histogramBinsSpinBox;
 
     QLabel *lyapunovExponentLabel;
+    QSpinBox *lyapunovTransientSpinBox;
     QSpinBox *lyapunovItsSpinBox;
 
     QCustomPlot *orbitPlot;
@@ -72,19 +74,24 @@ private:
     QCustomPlot *histogramPlot;
     QCPBars *histogram;
 
+    bool bifurcationsPlotMousePressed;
+    bool lyapunovPlotMousePressed;
+
+    bool settingBifurcationsPlotXRange;
+    bool settingLyapunovPlotXRange;
+
     void parameterChanged();
     void parameterIndexChanged(int i);
     void parameterValuesChanged();
     void centerParameter();
+    void reset();
 
     void setOrbitPlot();
-    void orbitPlotRangeChanged();
     void toggleSecondOrbit(int state);
     void initialCondition0Changed();
     void initialCondition1Changed();
 
     void setBifurcationsPlot();
-    void bifurcationsPlotRangeChanged();
     void bifurcationsTransientChanged();
     void bifurcationsItsChanged();
     void shiftBifurcationsLine(double value);
@@ -96,9 +103,18 @@ private:
 
     void setLyapunovPlot();
     void setLyapunovExponentLabel(int i);
-    void lyapunovPlotRangeChanged();
+    void lyapunovTransientChanged();
     void lyapunovItsChanged();
     void shiftLyapunovLine(double value);
+
+    void onOrbitPlotXRangeChanged(QCPRange newRange);
+
+    void onBifurcationsPlotMouseRelease();
+    void onBifurcationsPlotXRangeChanged(QCPRange newRange);
+    void onBifurcationsPlotYRangeChanged(QCPRange newRange);
+
+    void onLyapunovPlotMouseRelease();
+    void onLyapunovPlotXRangeChanged(QCPRange newRange);
 };
 
 #endif // MAINWINDOW_H
